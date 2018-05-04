@@ -3,32 +3,30 @@ __all__ = [
     'calc',
 ]
 
-def convert(expr):
+def convert_to_list(expr):
     operation_lst = []
     new_expr = []
-    open_brace_i = []
+    
+    def add_operations():
+        nonlocal operation_lst
+        nonlocal new_expr
+        j = 0
+        count = len(operation_lst)
+        while j < count:
+            operation = operation_lst.pop()
+            if operation == '(':
+                break
+           
+            new_expr.append(operation)
+            j += 1
 
     def on_opening_brace(char):
         nonlocal operation_lst
-        nonlocal open_brace_i
         operation_lst.append(char)
-        open_brace_i.append(len(operation_lst) - 1)
 
     def on_closing_brace(char):
-        nonlocal open_brace_i
-        last_open_brace_i = open_brace_i.pop() or 0
-        nonlocal operation_lst
-        nonlocal new_expr
-
-        operation_lst.pop(last_open_brace_i)
-        j = 0
-        op_len = len(operation_lst) - last_open_brace_i
-        while j < op_len:
-            new_expr.append(operation_lst.pop())
-            j += 1
-
-#        new_expr.extend(operation_lst[last_open_brace_i+1::])
-#        operation_lst = operation_lst[:last_open_brace_i:]
+        add_operations()
+       
 
     priority_dict = {
         '+' : 1,
@@ -47,18 +45,22 @@ def convert(expr):
         if not priority:
             return
 
-        nonlocal open_brace_i
-        start_i = open_brace_i[len(open_brace_i)-1] if len(open_brace_i) else 0
-
         nonlocal operation_lst
         nonlocal new_expr
+        j = 0
+        count = len(operation_lst)
+        while j < count:
+            operation = operation_lst.pop()
+           
+            if priority_dict.get(operation) >= priority:
+                new_expr.append(operation)
+            else:
+                operation_lst.append(operation)
 
-        while start_i < len(operation_lst):
-            other_priority = priority_dict.get(operation_lst[start_i])
-            if other_priority:
-                if other_priority >= priority:
-                    new_expr.append(operation_lst.pop(start_i))
-            start_i += 1
+            if operation == '(':
+               break
+
+            j += 1
 
         operation_lst.append(char)
 
@@ -76,28 +78,80 @@ def convert(expr):
 
     i = 0
     expr_len = len(expr)
+    digit_accum = ''
 
     while i < expr_len:
-        if expr[i].isdigit():
-            new_expr.append(expr[i])
-        elif not expr[i].isspace():
-            action = action_dict.get(expr[i])
-            if action:
-                action(expr[i])
-
+        char = expr[i]
+        if char.isdigit():
+            digit_accum += char
+        else:
+            if digit_accum:
+                new_expr.append(digit_accum)
+                digit_accum = ''
+            if not char.isspace():
+                if char == '/' and i != expr_len -1 and expr[i + 1] == '/':
+                    char += '/'
+                    i += 1
+                action = action_dict.get(char)
+                if action:
+                    action(char)
         i += 1
 
-    j = 0
-    op_len = len(operation_lst)
-    while j < op_len:
-        new_expr.append(operation_lst.pop())
-        j += 1
+    if digit_accum:
+        new_expr.append(digit_accum)
 
-    return ' '.join(new_expr)
+    add_operations()
+    return new_expr
+
+def convert(expr):    
+    return ' '.join(convert_to_list(expr))
     
+def add(i,j):
+    return i + j
+
+def subtract(i, j):
+    return i - j
+
+def multiply(i, j):
+    return i * j
+
+def divide(i, j):
+    return i / j
+
+def remainder(i, j):
+    return i % j
+
+def floored_quotient(i, j):
+    return i // j
+
+def to_power(i, j):
+    return i**j
+
 def calc(expr):
-    print(expr)
+    operation_dict = {
+        '+' : add,
+        '-' : subtract,
+        '*' : multiply,
+        '/' : divide,
+        '%' : remainder,
+        '//' : floored_quotient,
+        '^' : to_power,
+    }
+    expr_lst = convert_to_list(expr)
+    stack = []
+    for op in expr_lst:
+        if op.isdigit():
+            stack.append(int(op))
+        else:
+            operation = operation_dict.get(op)
+            if operation:
+                j = stack.pop() if len(stack) > 0 else 0
+                i = stack.pop() if len(stack) > 0 else 0
+                stack.append(operation(i, j))
+
+    return stack.pop()
 
 if __name__ == '__main__':
-    expr = input('\nВведите выражение:')
-    print(convert(expr))
+    expr = input('\nВведите выражение: ')
+    print(calc(expr))
+
