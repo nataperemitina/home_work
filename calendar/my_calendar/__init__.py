@@ -12,6 +12,11 @@ def action_find_opened():
     with get_connection() as conn:
         print(storage.get_opened(conn))
 
+def action_find_by_date():
+    date = input('\nЕсли требуется дата, отличная от сегодняшней, то введите дату в формате \'YYYY-MM-DD\':')
+    with get_connection() as conn:
+        print(storage.get_all_by_date(conn, date))
+
 def action_add():
     title = input('\nВведите название задачи: ')
     description = input('\nВведите описание задачи: ')
@@ -21,6 +26,10 @@ def action_add():
 
 def action_edit():
     id = input('\nВведите номер задачи: ')
+    with get_connection() as conn:
+        if not storage.get_task(conn, id):
+            print('Задачи с таким номером не существует!')
+            return
 
     def edit_title():
         with get_connection() as conn:
@@ -77,25 +86,33 @@ def action_edit():
 
 def action_complete():
     id = input('\nВведите номер выполненной задачи: ')
+    
     with get_connection() as conn:
-        storage.complete_task(conn, id)
+        if not storage.get_task(conn, id):
+            print('Задачи с таким номером не существует!')
+        else:
+            storage.complete_task(conn, id)
 
 def action_reopen():
     id = input('\nВведите номер переоткрываемой задачи: ')
     with get_connection() as conn:
-        storage.reopen_task(conn, id)
+        if not storage.get_task(conn, id):
+            print('Задачи с таким номером не существует!')
+        else:
+            storage.reopen_task(conn, id)
 
 def action_show_menu():
     print('''
 Ежедневник. Выберите действие:
         
-1. Вывести список всех задач
+1. Вывести список всех задач за определенный день 
 2. Вывести список незавершенных задач
 3. Добавить новую задачу
 4. Отредактировать задачу
 5. Завершить задачу
 6. Начать задачу сначала
-7. Выход
+7. Вывести полный список задач
+8. Выход
 
 ''')
 
@@ -107,13 +124,14 @@ def main():
         storage.initialize(conn)
 
     actions = {
-        '1': action_find_all,
+        '1': action_find_by_date,
         '2': action_find_opened,
         '3': action_add,
         '4': action_edit,
         '5': action_complete,
         '6': action_reopen,
-        '7': action_exit,
+        '7': action_find_all,
+        '8': action_exit,
     }
 
     while 1:

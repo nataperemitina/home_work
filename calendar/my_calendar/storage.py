@@ -4,7 +4,7 @@ import sqlite3
 SQL_INSERT_TASK = 'INSERT INTO calendar (title, description, due_date) VALUES (?,?,?)';
 
 SQL_UPDATE_TASK_STATUS = '''
-    UPDATE calendar SET status_id=? WHERE id=?
+    UPDATE calendar SET status=? WHERE id=?
 '''
 
 SQL_UPDATE_TASK_TITLE = '''
@@ -21,19 +21,15 @@ SQL_UPDATE_TASK_DUE_DATE = '''
 
 SQL_SELECT_ALL = '''
     SELECT 
-        calendar.id, title, description, due_date, task_status.status as status
-    FROM calendar LEFT JOIN task_status ON calendar.status_id = task_status.id;
-'''
-
-SQL_SELECT_ALL_SHORT = '''
-    SELECT 
-        calendar.id, title, description, due_date
+        calendar.id, title, description, due_date, status
     FROM calendar 
 '''
 
-SQL_SELECT_TASK_BY_STATUS = SQL_SELECT_ALL_SHORT + ' WHERE status_id=?'
+SQL_SELECT_TASK_BY_STATUS = SQL_SELECT_ALL + ' WHERE status=?'
 
-SQL_SELECT_TASK_BY_PK = SQL_SELECT_ALL_SHORT + ' WHERE id=?'
+SQL_SELECT_TASK_BY_PK = SQL_SELECT_ALL + ' WHERE id=?'
+
+SQL_SELECT_TASK_BY_DATE = SQL_SELECT_ALL + ' WHERE date(due_date)=date(?) '
 
 def connect(db_name=None):
     if db_name is None:
@@ -55,7 +51,14 @@ def get_all(conn):
 
 def get_opened(conn):
     with conn:
-        cursor = conn.execute(SQL_SELECT_TASK_BY_STATUS, (1,))
+        cursor = conn.execute(SQL_SELECT_TASK_BY_STATUS, ('Открыто',))
+        return cursor.fetchall()
+
+def get_all_by_date(conn, date):
+    if not date:
+        date = 'now'
+    with conn:
+        cursor = conn.execute(SQL_SELECT_TASK_BY_DATE, (date,))
         return cursor.fetchall()
 
 def get_task(conn, id):
@@ -93,8 +96,8 @@ def update_task_due_date(conn, id, due_date):
 
 def complete_task(conn, id):
     with conn:
-        conn.execute(SQL_UPDATE_TASK_STATUS, (2,id,))
+        conn.execute(SQL_UPDATE_TASK_STATUS, ('Завершено',id,))
 
 def reopen_task(conn, id):
     with conn:
-        conn.execute(SQL_UPDATE_TASK_STATUS, (1,id,))
+        conn.execute(SQL_UPDATE_TASK_STATUS, ('Открыто',id,))

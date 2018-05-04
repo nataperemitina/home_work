@@ -152,6 +152,6 @@ def calc(expr):
     return stack.pop()
 
 if __name__ == '__main__':
-    expr = input('\nВведите выражение: ')
+    expr = input()
     print(calc(expr))
 
