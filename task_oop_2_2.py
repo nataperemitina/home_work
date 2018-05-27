@@ -60,15 +60,15 @@ class Pupil(Person):
                                                             self.__lessons_count,
                                                             self.__tasks)
 
+
 class Course(object):
-    __slots__ = ('__theme', '__start_time', '__end_time', '__teachers', '__lessons', '__tasks')
+    __slots__ = ('__theme', '__start_time', '__end_time', '__teachers',)
     def __init__(self, theme):
         self.__theme = theme
         self.__start_time = None
         self.__end_time = None
-        self.__lessons = []
         self.__teachers = []
-        self.__tasks = []
+
 
     def get_start_time(self):
         return self.__start_time
@@ -98,57 +98,33 @@ class Course(object):
                                                                          self.__start_time,
                                                                          self.__end_time,
                                                                          self.__teachers)
-
 def main():
 
     # define_math_course
+    course_math = Course("Math")
+    course_math.set_start_time("01/09/2017")
+    course_math.set_end_time("01/06/2018")
+
+    teacher_ted = Teacher("Frank", "Tailor")
+    course_math.add_teacher(teacher_ted)
+
     pupil_alex = Pupil("Alex", "Black")
+    teacher_ted.add_pupil(pupil_alex)
+
+    pupil_jane = Pupil("Jane", "Smith")
+    teacher_ted.add_pupil(pupil_jane)
+
     pupil_alex.mark_task("leson1", "A")
     pupil_alex.mark_task("leson2", "C")
     pupil_alex.inc_lessons()
     pupil_alex.inc_lessons()
 
-    pupil_jane = Pupil("Jane", "Smith")
     pupil_jane.mark_task("leson1", "B")
     pupil_jane.mark_task("leson2", "C")
     pupil_jane.inc_lessons()
     pupil_jane.inc_lessons()
 
-    teacher_ted = Teacher("Frank", "Tailor")
-    teacher_ted.add_pupil(pupil_alex)
-    teacher_ted.add_pupil(pupil_jane)
-
-    course_math = Course("Math")
-    course_math.add_teacher(teacher_ted)
-    course_math.set_start_time("01/09/2017")
-    course_math.set_end_time("01/06/2018")
-
-
-    # define_art_course
-    pupil_bob = Pupil("Bob", "Jonson")
-    pupil_bob.mark_task("leson1", "B")
-    pupil_bob.mark_task("leson2", "B")
-    pupil_bob.inc_lessons()
-    pupil_bob.inc_lessons()
-
-    pupil_alexa = Pupil("Alexa", "Hall")
-    pupil_alexa.mark_task("leson1", "A")
-    pupil_alexa.mark_task("leson2", "C")
-    pupil_alexa.inc_lessons()
-    pupil_alexa.inc_lessons()
-
-    teacher_dorothy = Teacher("Dorothy", "Tailor")
-    teacher_dorothy.add_pupil(pupil_bob)
-    teacher_dorothy.add_pupil(pupil_alexa)
-
-    course_art = Course("Art")
-    course_art.add_teacher(teacher_dorothy)
-    course_art.set_start_time("01/09/2018")
-    course_art.set_end_time("01/06/2019")
-
-    print("Courses\n")
     print("{0}".format(course_math))
-    print("{0}".format(course_art))
 
 if __name__ == "__main__":
-        main()
+    main()
