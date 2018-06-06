@@ -1,9 +1,11 @@
 from abc import ABCMeta, abstractmethod
 
 class Command(metaclass=ABCMeta):
+    def __init__(self, *args, **kwargs):
+        pass
 
     @abstractmethod
-    def execute(self, *args, **kwargs):
+    def execute(self):
         pass
 
 
@@ -24,7 +26,8 @@ class Menu(metaclass=ABCMeta):
     def execute(self, name, *args, **kwargs):
         command = self.__commands.get(name)
         if command:
-            command.execute(args, kwargs)
+            command_object = command(*args, **kwargs)
+            return command_object.execute()
         else:
             raise CommandException('Command with name "{}" not found'.format(name))
 
@@ -44,5 +47,4 @@ class Menu(metaclass=ABCMeta):
 
 class CommandException(Exception):
     pass
-
 
