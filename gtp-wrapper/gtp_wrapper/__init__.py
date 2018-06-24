@@ -26,5 +26,6 @@ def main():
     if 'dump_file' in arguments:
         dump = rdpcap(arguments['dump_file'])
         for packet in dump:
-            if packet[IP] == 
+            sub_ip = arguments.get('ip')
+            if packet[IP] ==
         print(dump)
