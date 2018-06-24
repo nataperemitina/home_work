@@ -1,6 +1,6 @@
 import scapy.all
 from scapy.contrib.gtp import *
-from socketyt import UDPSocket
+from socketut import UDPSocket
 
 class IMSI_TEST(Packet):
     name = "IMEI"
@@ -25,7 +25,7 @@ class GTPCreatePDPContextRequest2(Packet):
     def hashret(self):
         return struct.pack("H", self.seq)
 
-class GTPProto():
+class GSN(object):
     GTP_C_PORT = 2123
     GTP_U_PORT = 2152
 
@@ -51,7 +51,7 @@ class GTPProto():
     def sendGTPCMsg(self, data, ip, port):
         self.gtpc_socket.send(data, ip, port)
 
-class GGSN(GTPProto):
+class GGSN(GSN):
     GTP_C_IP = "200.0.0.2"
     GTP_U_IP = "200.0.0.2"
     teid_c = 1
@@ -67,7 +67,10 @@ class GGSN(GTPProto):
         self.sgsn_teid_c = 1
         self.sgsn_teid_d = 1
 
-    #def sendCreatePDPContextResponse(self):
+    #def receiveCreatePDPContextRequest(self):
+
+
+    def sendCreatePDPContextResponse(self):
 
 
     def sendGTPU(self, payload):
@@ -84,7 +87,7 @@ class GGSN(GTPProto):
         super().sendGTPUMsg(raw(gtp), SGSN.GTP_U_IP, GGSN.GTP_U_PORT)
 
 
-class SGSN(GTPProto):
+class SGSN(GSN):
     GTP_C_IP = "200.0.0.1"
     GTP_U_IP = "200.0.0.1"
     teid_c = 1
@@ -161,7 +164,7 @@ class SGSN(GTPProto):
 
 def main():
     sgsn = SGSN()
-    #ggsn = GGSN()
+    ggsn = GGSN()
 
     payload = IP()
     sgsn.sendGTPU(raw(payload))
@@ -173,7 +176,7 @@ def main():
         33610328579, #MSISDN
         3517510449245601) #IMEI
     sgsn.test()
-    #ggsn.sendGTPU(raw(payload))
+    ggsn.sendGTPU(raw(payload))
 
     # def Main()
     #    sgsn = SGSN()
