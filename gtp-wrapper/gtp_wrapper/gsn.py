@@ -2,29 +2,6 @@ import scapy.all
 from scapy.contrib.gtp import *
 from socketut import UDPSocket
 
-class IMSI_TEST(Packet):
-    name = "IMEI"
-    fields_desc = [ PacketListField("IE_list", [ IE_IMSI() ,
-                                                 IE_NotImplementedTLV(ietype=135, length=15,data=RandString(15)) ],
-                                                IE_Dispatcher) ]
-
-
-class GTPCreatePDPContextRequest2(Packet):
-    # 3GPP TS 29.060 V9.1.0 (2009-12)
-    name = "GTP Create PDP Context Request"
-    fields_desc = [ PacketListField("IE_list", [ IE_IMSI(),
-                                                 IE_TEIDI(),
-                                                 IE_TEICP(),
-                                                 IE_NSAPI(),
-                                                 IE_GSNAddress(),
-                                                 IE_GSNAddress(),
-                                                 IE_MSInternationalNumber(),
-                                                 IE_NotImplementedTLV(ietype=135, length=15,data=RandString(15)),
-                                                 IE_IMEI() ],
-                                                    IE_Dispatcher) ]
-    def hashret(self):
-        return struct.pack("H", self.seq)
-
 class GSN(object):
     GTP_C_PORT = 2123
     GTP_U_PORT = 2152
@@ -51,6 +28,9 @@ class GSN(object):
     def sendGTPCMsg(self, data, ip, port):
         self.gtpc_socket.send(data, ip, port)
 
+    def recvGTPCMsg(self, data, ip, port):
+        return self.gtpc_socket.recv()
+
 class GGSN(GSN):
     GTP_C_IP = "200.0.0.2"
     GTP_U_IP = "200.0.0.2"
@@ -67,15 +47,40 @@ class GGSN(GSN):
         self.sgsn_teid_c = 1
         self.sgsn_teid_d = 1
 
-    #def receiveCreatePDPContextRequest(self):
+    def receiveCreatePDPContextRequest(self):
+        pkt  = self.recvGTPCMsg()
+        hexdump(pkt)
 
+    def sendCreatePDPContextResponse(self,
+                                     endUserIP,
+                                     GSNAddressForSignaling,
+                                     GSNAddressForUserTraffic,
+                                     ):
+        gtp = GTPHeader()/GTPCreatePDPContextResponse()
+        # Fill in GTP Header
+        gtp.S = 1
+        gtp.gtp_type = "create_pdp_context_res"
+        gtp.seq = self.getGTPCSeq()
 
-    def sendCreatePDPContextResponse(self):
+        gtp.IE_list.append(IE_Cause(CauseValue = "Request accepted"))
+        gtp.IE_list.append(IE_ReorderingRequired(reordering_required = "False"))
+        gtp.IE_list.append(IE_Recovery(restart_counter = 4))
+        gtp.IE_list.append(IE_TEIDI(TEIDI = self.teid_c))
+        gtp.IE_list.append(IE_TEICP(TEICI = self.teid_d))
+        gtp.IE_list.append(IE_ChargingId())
+        gtp.IE_list.append(IE_EndUserAddress(length = 6, PDPTypeNumber = 0x21, PDPAddress = endUserIP))
+        gtp.IE_list.append(IE_GSNAddress(address = GSNAddressForSignaling))
+        gtp.IE_list.append(IE_GSNAddress(address = GSNAddressForUserTraffic))
+        gtp.IE_list.append(IE_NotImplementedTLV(ietype=135, length=15, data=RandString(15)))
 
+        gtp.show2()
+        hexdump(gtp)
+
+        super().sendGTPCMsg(raw(gtp), SGSN.GTP_C_IP, SGSN.GTP_C_PORT)
 
     def sendGTPU(self, payload):
         gtp = GTP_U_Header()/Raw()
-        gtp.gtp_type = 255
+        gtp.gtp_type = "g_pdu"
         gtp.seq = self.getGTPUSeq()
         gtp.teid = self.sgsn_teid_d
 
@@ -109,30 +114,22 @@ class SGSN(GSN):
                                     GSNAddressForSignaling,
                                     GSNAddressForUserTraffic,
                                     msisdn, imei):
-        gtp = GTPHeader() / GTPCreatePDPContextRequest2()
+        gtp = GTPHeader() / GTPCreatePDPContextRequest()
         # Fill in GTP Header
         gtp.S = 1
-        gtp.gtp_type = 16
+        gtp.gtp_type = "create_pdp_context_req"
         gtp.seq = self.getGTPCSeq()
 
-        # IMSI
-        gtp.IE_list[0].imsi = imsi
-
-        # TEID
-        gtp.IE_list[1].TEIDI = self.teid_d
-        gtp.IE_list[2].TEICI = self.teid_c
-
-        # GSN Address
-        gtp.IE_list[4].address = GSNAddressForSignaling
-        gtp.IE_list[5].address = GSNAddressForUserTraffic
-
-        # MSISDN
-        gtp.IE_list[6].digits = msisdn
-        gtp.IE_list[6].length = 7
-
-        # IMEI
-        gtp.IE_list[8].IMEI = imei
-        gtp.IE_list[8].length = 8
+        gtp.IE_list.clear()
+        gtp.IE_list.append(IE_IMSI(imsi = imsi))
+        gtp.IE_list.append(IE_TEIDI(TEIDI = self.teid_d))
+        gtp.IE_list.append(IE_TEICP(TEICI = self.teid_c))
+        gtp.IE_list.append(IE_NSAPI())
+        gtp.IE_list.append(IE_GSNAddress(address = GSNAddressForSignaling))
+        gtp.IE_list.append(IE_GSNAddress(address = GSNAddressForUserTraffic))
+        gtp.IE_list.append(IE_MSInternationalNumber(digits = msisdn, length = 7))
+        gtp.IE_list.append(IE_NotImplementedTLV(ietype=135, length=15, data=RandString(15)))
+        gtp.IE_list.append(IE_IMEI(IMEI = imei, length = 8))
 
         gtp.show2()
         hexdump(gtp)
@@ -141,7 +138,7 @@ class SGSN(GSN):
 
     def sendGTPU(self, payload):
         gtp = GTP_U_Header()/Raw()
-        gtp.gtp_type = 255
+        gtp.gtp_type = "g_pdu"
         gtp.seq = self.getGTPUSeq()
         gtp.teid = self.ggsn_teid_d
 
@@ -152,44 +149,45 @@ class SGSN(GSN):
 
         super().sendGTPUMsg(raw(gtp), GGSN.GTP_U_IP, GGSN.GTP_U_PORT)
 
-    def test(self):
-        imsi = IMSI_TEST()
-        imsi.IE_list[0].imsi = 208101166102614
-
-        imsi.show2()
-        hexdump(imsi)
-
 #   def receiveAndCheck(self, imsi, msisdn, imei)
-#   def sendgtpu(file_pcap)
+class Test(object):
+    def __init__(self):
+        self.sgsn = SGSN()
+        self.ggsn = GGSN()
+
+    def main(self):
+        self.emulatePDPContextCreation()
+        self.emulateTraffic()
+
+    def emulatePDPContextCreation(self):
+        # Emulate Control plain
+        self.sgsn.sendCreatePDPContextRequest(
+            208101166102614,  # IMSI
+            "192.168.1.1",  # GSNAddressForSignaling
+            "192.168.1.2",  # GSNAddressForUserTraffic
+            33610328579,  # MSISDN
+            3517510449245601)  # IMEI
+
+        self.ggsn.sendCreatePDPContextResponse(
+            "10.132.1.1",  # EndUserIP
+            "10.10.10.1",  # GSNAddressForSignaling
+            "10.10.10.1",  # GSNAddressForUserTraffic
+        )
+
+    def emulateTraffic(self):
+        # Emulate traffic
+        dump = rdpcap("imo.cap")
+        for packet in dump:
+            # TODO Need to check if IP leayer is avaliable
+            if packet[IP].src == "192.168.169.22":
+                self.sgsn.sendGTPU(raw(packet[IP]))
+            elif packet[IP].src == "192.168.169.1":
+                self.ggsn.sendGTPU(raw(packet[IP]))
+
 
 def main():
-    sgsn = SGSN()
-    ggsn = GGSN()
-
-    payload = IP()
-    sgsn.sendGTPU(raw(payload))
-
-    sgsn.sendCreatePDPContextRequest(
-        208101166102614, #IMSI
-        "192.168.1.1",
-        "192.168.1.2",
-        33610328579, #MSISDN
-        3517510449245601) #IMEI
-    sgsn.test()
-    ggsn.sendGTPU(raw(payload))
-
-    # def Main()
-    #    sgsn = SGSN()
-    #    ggsn = GGSN()
-
-    #    ggsn.receiveAndCheck()
-    #    sgsn.sendCreatePDPContextRequest()
-
-    #    ggsn.receivegtpu()
-    #    sgsn.sendgtpu("var\gtp.pcap")
-
-
-    # my code here
+    test = Test()
+    test.main()
 
 if __name__ == "__main__":
     main()

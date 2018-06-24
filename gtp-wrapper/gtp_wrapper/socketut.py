@@ -17,11 +17,16 @@ class RawSocket:
         print ("got")
 
 class UDPSocket:
+    MAX_PACKET_SIZE = 1500
+
     def __init__(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def send(self, data, ip, port):
         self.socket.sendto(data, (ip, port))
+
+    def recv(self):
+        return self.socket.recvfrom(UDPSocket.MAX_PACKET_SIZE)
 
     def bind(self, ip, port):
         self.socket.bind((ip, port))
