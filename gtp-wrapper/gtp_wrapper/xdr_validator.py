@@ -54,6 +54,9 @@ class RecordContainer(object):
         return result
 
     def validate(self, keys, calculated_values=None):
+        print(self.__repr__())
+        print(keys)
+        print(calculated_values)
         if calculated_values:
             for key, value in calculated_values.items():
                 if self.sum_field_values(key, keys) != value:
@@ -106,19 +109,20 @@ class IPDRValidator(XDR_Validator):
     def __init__(self, file_path):
         self.records = RecordContainer(file_path,
                                        [
-                                           'Time',
-                                           'SubscriberID',
-                                           'SubscriberIPAddress',
-                                           'SubscriberPort',
-                                           'NetworkIPAddress',
-                                           'NetworkPort',
-                                           'ProtocolID',
-                                           'ServiceID',
-                                           'UplinkBytes',
-                                           'DownlinkBytes',
-                                           'SessionDuration',
-                                           'Metadata'],
-                                        ';')
+                                           'time',
+                                           'subscriberId',
+                                           'ip',
+                                           'subscriberPort',
+                                           'networkIp',
+                                           'networkPort',
+                                           'protocolID',
+                                           'serviceID',
+                                           'uplinkBytes',
+                                           'downlinkBytes',
+                                           'sessionDuration',
+                                           'metadata'],
+                                        ';',
+                                       'metadata')
 
     def validate(self, pdp_context, up_bytes, dn_bytes):
-        return self.records.validate(pdp_context, {'UplinkBytes':up_bytes, 'DownlinkBytes':dn_bytes})
+        return self.records.validate(pdp_context, {'uplinkBytes':up_bytes, 'downlinkBytes':dn_bytes})

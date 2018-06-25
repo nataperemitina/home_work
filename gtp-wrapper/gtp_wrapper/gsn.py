@@ -86,8 +86,8 @@ class GGSN(GSN):
 
         gtp.load = payload
 
-        gtp.show2()
-        hexdump(gtp)
+        #gtp.show2()
+        #hexdump(gtp)
 
         super().send_gtpu_msg(raw(gtp), SGSN.GTP_U_IP, GGSN.GTP_U_PORT)
 
@@ -150,8 +150,8 @@ class SGSN(GSN):
 
         gtp.load = payload
 
-        gtp.show2()
-        hexdump(gtp)
+        #gtp.show2()
+        #hexdump(gtp)
 
         super().send_gtpu_msg(raw(gtp), GGSN.GTP_U_IP, GGSN.GTP_U_PORT)
 
