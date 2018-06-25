@@ -1,4 +1,5 @@
 import json
+from abc import ABCMeta, abstractmethod
 
 class Record(object):
     __slots__ = ('__fields')
@@ -64,29 +65,60 @@ class RecordContainer(object):
         return True
 
 
-if __name__ == '__main__':
-    FIELD_NAMES_IPDR = [
-    'Time',
-    'SubscriberID',
-    'SubscriberIPAddress',
-    'SubscriberPort',
-    'NetworkIPAddress',
-    'NetworkPort',
-    'ProtocolID',
-    'ServiceID',
-    'UplinkBytes',
-    'DownlinkBytes',
-    'SessionDuration',
-    'Metadata']
+class XDR_Validator(metaclass=ABCMeta):
+    validators = {}
+
+    @abstractmethod
+    def validate(self, pdp_context, up_bytes, dn_bytes):
+        pass
+
+    @classmethod
+    def add_type(cls, name, klass):
+        if not name:
+            raise XDR_ValidatorException('Validator must have a name!')
+
+        if not issubclass(klass, XDR_Validator):
+            raise XDR_ValidatorException('Class "{}" is not Validator!'.format(klass))
+
+        cls.validators[name] = klass
+
+    @classmethod
+    def get_instance(cls, name, *args, **kwargs):
+        klass = cls.validators.get(name)
+        if klass is None:
+            raise XDR_ValidatorException('Validator with name "{}" not found!'.format(name))
+
+        return klass(*args, **kwargs)
+
+class XDR_ValidatorException(Exception):
+    pass
 
 
-    IPDR_SEPARATOR = ';'
-    ipdr = RecordContainer('../detailed_ipdr.log', FIELD_NAMES_IPDR, IPDR_SEPARATOR, 'Metadata')
-    print(ipdr)
-    print(ipdr.validate({'http.uri': '/10m',}, {'UplinkBytes':217327, 'DownlinkBytes':10667183}))
-    print(ipdr.validate({'http.uri': '/10m',}, {'UplinkBytes':217328, 'DownlinkBytes':10667183}))
-    print(ipdr.sum_field_values('UplinkBytes', {'http.uri': '/1k',}))
-    print(ipdr.sum_field_values('DownlinkBytes', {'http.uri': '/1k',}))
-    print(ipdr.validate({'http.uri': '/1k'},{'UplinkBytes':6510}))
-    print(ipdr.validate({'SubscriberID': '1.1.1.3',}))
-    print(ipdr.validate({'SubscriberPort': '50166',}))
+def type_hold(name):
+    def decorator(cls):
+        XDR_Validator.add_type(name, cls)
+        return cls
+    return decorator
+
+
+@type_hold('ipdr')
+class IPDRValidator(XDR_Validator):
+    def __init__(self, file_path):
+        self.records = RecordContainer(file_path,
+                                       [
+                                           'Time',
+                                           'SubscriberID',
+                                           'SubscriberIPAddress',
+                                           'SubscriberPort',
+                                           'NetworkIPAddress',
+                                           'NetworkPort',
+                                           'ProtocolID',
+                                           'ServiceID',
+                                           'UplinkBytes',
+                                           'DownlinkBytes',
+                                           'SessionDuration',
+                                           'Metadata'],
+                                        ';')
+
+    def validate(self, pdp_context, up_bytes, dn_bytes):
+        return self.records.validate(pdp_context, {'UplinkBytes':up_bytes, 'DownlinkBytes':dn_bytes})
